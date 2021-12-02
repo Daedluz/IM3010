@@ -1,0 +1,185 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{amsfonts}
+\usepackage{amssymb}
+
+\usepackage{amsthm}
+\usepackage{epsfig}
+\usepackage{graphicx}
+\usepackage{natbib}		% citet, citep
+\usepackage{textcomp}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{fullpage}
+\usepackage{authblk}
+\usepackage{url}
+\usepackage{color}
+\usepackage{tikz}
+% \usepackage{xeCJK}
+% \setCJKmainfont{TW-Kai} 
+
+% use for game tree
+\usepackage{amsmath}
+\def\vpay#1#2{\begin{matrix}#1\\#2\end{matrix}}
+\usepackage{istgame}
+
+\renewcommand{\baselinestretch}{1.4}
+
+\parskip=5pt
+\parindent=20pt
+\footnotesep=5mm
+
+\newtheorem{lem}{Lemma}
+\newtheorem{prop}{Proposition}
+\newtheorem{defn}{Definition}
+\newtheorem{cor}{Corollary}
+\newtheorem{ass}{Assumption}
+\newtheorem{obs}{Observation}
+\newenvironment{pf}{\begin{proof}\vspace{-10pt}}{\end{proof}}
+% \newtheorem{ques}{Question}
+% \newtheorem{rmk}{Remark}
+% \newtheorem{note}{Note}
+% \newtheorem{eg}{Example}
+
+\newenvironment{enumerateTight}{\begin{enumerate}\vspace{-8pt}}{\end{enumerate}\vspace{-8pt}}
+\newenvironment{itemizeTight}{\begin{itemize}\vspace{-8pt}}{\end{itemize}\vspace{-8pt}}
+\leftmargini=25pt   % default: 25pt
+\leftmarginii=12pt  % default: 22pt
+
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\argmin}{argmin}
+\setcounter{MaxMatrixCols}{20}
+
+\title{Computer Network and Application (110-1) \\ Homework 1}
+
+\author{Michael Chen (B08705051)}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{R4}
+
+\subsection{Home Access}
+\begin{itemize}
+    \item Digital subscriber line (DSL)
+    \item Fiber to the home 
+    \item Cable internet access
+    \item Wi-Fi
+\end{itemize}
+
+\subsection{Enterprise Access}
+\begin{itemize}
+    \item Ethernet
+\end{itemize}
+
+\subsection{Wide-area Wireless Access}
+\begin{itemize}
+    \item 3G and 4G
+\end{itemize}
+
+\section{R13}
+
+\subsection{a.}
+2 users.
+
+\subsection{b.}
+Because if there's two or fewer user transmit at the same time, the link capacity won't be fully occupied, so there won't be any queuing delay. \\
+But if three or more users are transferring simultaneously, the transmitted data would exceed the link's max capacity, so there will be queuing delay.
+
+\subsection{c.}
+20 percent.
+
+\subsection{d.}
+The probability is $0.2^3 = 0.008$ \\
+The probability of the queue growing is $0.2 + 0.2^2 + 0.2^3 + .... + 0.2^\infty = \frac{1}{4}$
+
+\section{R16}
+\begin{itemize}
+    \item Packet transmission delay : a constant delay time $\frac{L}{R}$ 
+    \item Queuing delay : a variable delay determined by how many packets are waiting for the output link
+    \item Propagation delay : constant delay time
+    \item Processing delay : constant delay time
+\end{itemize}
+
+\section{P3}
+
+\subsection{a.}
+A circuit switched network would be more appropriate for this application, since the transmission rate is steady and has a long session, we can reserve 
+bandwidth for the application without waste and save the time of constantly setting up new connections.
+
+\subsection{b.}
+No congestion control is needed. Because even if all applications transmit data at the same time, it still won't exceed the max capacity of the link.
+
+\section{P6}
+
+\subsection{a.}
+$d_{\text{prop}} = m / s $
+
+\subsection{b.}
+$d_{\text{trans}} = L / R$
+
+\subsection{c.}
+The end to end delay is $d_{\text{prop}} + d_{\text{trans}} =  m / s + L / R$.
+
+\subsection{d.}
+The bit would be just leaving Host A at time $t = d_{\text{trans}}$
+
+\subsection{e.}
+Because $d_{\text{prop}} > d_{\text{trans}}$, so the first bit would be in the link, hasn't reached Host B yet.
+
+\subsection{f.}
+The bit would have reached Host B.
+
+\subsection{g.}
+$\frac{m}{2.5 \cdot 10^8} = \frac{120}{56 \cdot 10^3}$ \\
+$m = 2.5 \cdot 10^8 \cdot \frac{120}{56 \cdot 10^3} = \frac{75}{14} \cdot 10^5 = \frac{7500}{14}$ km
+
+\section{P7}
+How long it needs to gather one packet : $\frac{56 \cdot 8}{64 \cdot 10^3} = 0.007$ sec \\
+Transfer time : $\frac{56 \cdot 8}{2 \cdot 10^6} = 0.000224$ sec \\
+Total time : $0.007 + 0.000224 + 0.01 = 0.017224$ sec 
+
+\section{P8}
+
+\subsection{a.}
+$\frac{3 \cdot 10^6}{150 \cdot 10^3} = 20$ users
+
+\subsection{b.}
+0.1
+
+\subsection{c.}
+$C^{120}_n \cdot 0.1^n \cdot 0.9^{120-n} $
+
+\subsection{d.}
+Ans = 1 - Probability of less than or equal to 20 users are transmitting data simultaneously
+$1 - \sum^{20}_{i=0} C^{120}_i  \cdot 0.1^i \cdot 0.9^{120-i}$
+
+\section{P31}
+
+\subsection{a.}
+$\frac{8 \cdot 10^6}{2 \cdot 10^6} = 4$ sec \\
+There are 3 links, so $4 \times 3 = 12$ seconds
+
+\subsection{b.}
+$\frac{10000}{2 \cdot 10^6} = 0.005$ sec \\
+Suppose the first packet is sent at t=0 (in seconds), the second packet will reach the first switch at t=0.01.
+
+\subsection{c.} 
+1. \\
+After the first packet reached the destination, the rest 799 packets will arrive one after another with a 0.005 interval. \\
+So the total time is $0.005 \cdot 3 + 799 \cdot 0.005 = 4.01$ sec. \\
+2.\\
+The message segmentation method has significantly less delay.
+
+\subsection{d.}
+Without message segmentation, if there's a packet loss, the whole message has to be transferred again. \\
+Second, these large packets may exceed the router's storage space, and thus will never reach its destination.
+
+\subsection{e.}
+With message segmentation, the message would be split in many small segments all with its own header, which would lead to 
+more header bytes.
+ 
+
+\end{document}
