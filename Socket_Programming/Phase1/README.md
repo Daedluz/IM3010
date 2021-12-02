@@ -14,6 +14,3 @@
 - Listen to server's response
 - Transactions **between** clients (Talk to other client)
 - Tell server before exiting the system
-
-### TODOs
-
