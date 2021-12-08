@@ -78,6 +78,7 @@ void user_transaction(int &sock, char buffer[BUFFERLEN], string userName, vector
     if (!found)
     {
         cout<<"\nPeer not found, try \"list\" command and try again.\n> ";
+        return;
     }
     msg = userName + "#" + value + "#" + target;
     // cout<<msg<<endl;
