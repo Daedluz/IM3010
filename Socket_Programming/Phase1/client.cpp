@@ -9,14 +9,13 @@
 # include <string>
 # include <vector>
 
-# define PORT 8080
 # define BUFFERLEN 4096
 
 using namespace std;
 
 struct args 
 {
-    int serv_sock;
+    int* serv_sock;
     int port_num;
 };
 
@@ -33,7 +32,6 @@ void * listen_peer_message (void * arg)
         cout << "\nCreate listening socket failed.\n";
         return NULL;
     }
-    // TODO (optonal) setsockopt(listening, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, ); 
     int opt = 1;
     setsockopt(listening, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)); 
 
@@ -51,8 +49,9 @@ void * listen_peer_message (void * arg)
     new_sock = accept(listening, (struct sockaddr *)&addr, &addr_size);
     cout<<"\nYou have a transaction request : ";
     recv_len = read(new_sock, buffer, BUFFERLEN);
-    cout<<buffer<<endl<<"> ";
-    send(params->serv_sock, buffer, recv_len, 0);
+    cout<<buffer<<"\n> ";
+    // DONE FIXME Server can't recieve client message
+    send(*params->serv_sock, buffer, recv_len, 0);
     // }
 
     return NULL;
@@ -122,7 +121,10 @@ int userLogin(int &sock, char buffer[BUFFERLEN], string userName, int listen_por
     int bytes_recv = recv(sock, buffer, BUFFERLEN, 0);
     // REVIEW Is it a legit way to check response ?
     if (bytes_recv == 14)
+    {
         cout<<"\nLogin failed.\n";
+        bytes_recv = 0;
+    }
     else 
         cout<<"\nLogin Successful !\n";
     return bytes_recv;
@@ -146,6 +148,7 @@ vector<string> split (string s, string delimiter) {
 }
 
 int main(int argc, char *argv[])
+// argv[1] is server ip address, argv[2] is server port number
 {
     int sock = 0;
     char buffer[BUFFERLEN] = {0};
@@ -167,9 +170,10 @@ int main(int argc, char *argv[])
 
     // Define server address
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(PORT);
+    int serv_port = atoi(argv[2]);
+    serv_addr.sin_port = htons(serv_port);
 
-    if ( inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0 )
+    if ( inet_pton(AF_INET, argv[1], &serv_addr.sin_addr) <= 0 )
     {
         cout<<"\nInvalid address\n";
         return -1;
@@ -183,15 +187,6 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    // DONE TODO Create a thread to listen to other user's message
-    pthread_t tid;
-	pthread_attr_t attr;
-
-    pthread_attr_init (&attr);
-    struct args param = {sock, stoi(argv[1])};
-    
-
-    pthread_create (&tid, &attr, listen_peer_message, &param);
     
     // Listen to user inputs to perform actions
 
@@ -211,38 +206,61 @@ int main(int argc, char *argv[])
         }
         else if (userInput == "login")
         {
+            if (login)
+            {
+                cout<<"You've already logged in as "<<userName<<endl;
+                continue;
+            }
+            string port_num;
             cout<<"Username : \n> ";
             getline(cin, userName);
-            int res_len = userLogin(sock, buffer, userName, stoi(argv[1]));
-            // Read the list
-            char str[res_len];
-            copy (buffer, buffer+res_len, str);
-            string tmp_str = string(str);
-            // cout<<str;
-            vector<string> tmp = split(tmp_str, "\n");
-            acc_bal = stoi(tmp[0]);
-            serv_pk = tmp[1];
-            online_num = stoi(tmp[2]);
-            for (int i=3; i<3+online_num; i++)
+            cout<<"Port number : \n> ";
+            getline(cin, port_num);
+            int res_len = userLogin(sock, buffer, userName, stoi(port_num));
+            if (res_len > 0) // if login successful
             {
-                user_list.push_back(split(tmp[i], "#"));
-            }
+                // DONE TODO Create a thread to listen to other user's message
+                pthread_t tid;
+                pthread_attr_t attr;
 
-            cout<<"\nAccount balance is : "<<acc_bal<<endl;
-            cout<<"Server's public key is : "<<serv_pk<<endl;
-            cout<<online_num<<endl;
-            cout<<"User list :"<<endl;
-            for (int i=0; i<user_list.size(); i++)
-            {
-                for (int j=0; j<user_list[0].size(); j++)
+                pthread_attr_init (&attr);
+                struct args param = {&sock, stoi(port_num)};
+                
+                pthread_create (&tid, &attr, listen_peer_message, &param);
+
+
+                // Read the list
+                char str[res_len];
+                copy (buffer, buffer+res_len, str);
+                string tmp_str = string(str);
+                // cout<<str;
+                vector<string> tmp = split(tmp_str, "\n");
+                acc_bal = stoi(tmp[0]);
+                serv_pk = tmp[1];
+                online_num = stoi(tmp[2]);
+                for (int i=3; i<3+online_num; i++)
                 {
-                    cout<< user_list[i][j]<<" ";
+                    user_list.push_back(split(tmp[i], "#"));
+                }
+
+                cout<<"\nAccount balance is : "<<acc_bal<<endl;
+                cout<<"Server's public key is : "<<serv_pk<<endl;
+                cout<<online_num<<endl;
+                cout<<"User list :"<<endl;
+                for (int i=0; i<user_list.size(); i++)
+                {
+                    for (int j=0; j<user_list[0].size(); j++)
+                    {
+                        cout<< user_list[i][j]<<" ";
+                    }
+                    cout<<endl;
                 }
                 cout<<endl;
-            }
-            cout<<endl;
 
-            memset(buffer, 0, BUFFERLEN); // clear buffer
+                memset(buffer, 0, BUFFERLEN); // clear buffer
+                login = true;
+            }
+            
         }
         else if (userInput == "transaction")
         {
@@ -258,7 +276,6 @@ int main(int argc, char *argv[])
             char str[res_len];
             copy (buffer, buffer+res_len, str);
             string tmp_str = string(str);
-            // cout<<str;
             vector<string> tmp = split(tmp_str, "\n");
             acc_bal = stoi(tmp[0]);
             serv_pk = tmp[1];
