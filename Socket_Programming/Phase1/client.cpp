@@ -42,17 +42,16 @@ void * listen_peer_message (void * arg)
     bind(listening, (struct sockaddr *)&addr, sizeof(addr));
     socklen_t addr_size = sizeof(addr);
 
-    // while(true)
-    // {
-    listen(listening, 10);
-    // cout<<"Listening on port "<<params->port_num<<endl;
-    new_sock = accept(listening, (struct sockaddr *)&addr, &addr_size);
-    cout<<"\nYou have a transaction request : ";
-    recv_len = read(new_sock, buffer, BUFFERLEN);
-    cout<<buffer<<"\n> ";
-    // DONE FIXME Server can't recieve client message
-    send(*params->serv_sock, buffer, recv_len, 0);
-    // }
+    while(true)
+    {
+        listen(listening, 10);
+        // cout<<"Listening on port "<<params->port_num<<endl;
+        new_sock = accept(listening, (struct sockaddr *)&addr, &addr_size);
+        cout<<"\nYou have a transaction request : ";
+        recv_len = read(new_sock, buffer, BUFFERLEN);
+        cout<<buffer<<"\n> ";
+        send(*params->serv_sock, buffer, recv_len, 0);
+    }
 
     return NULL;
 }
@@ -81,10 +80,20 @@ void user_transaction(int &sock, char buffer[BUFFERLEN], string userName, vector
     // Connect to peer socket
     struct sockaddr_in peer_addr;
     int peer_sock = socket(PF_INET, SOCK_STREAM, 0);
+    if( peer_sock < 0)
+    {
+        cout<<"\n Peer socket creation error \n";
+        return ;
+    }
     peer_addr.sin_family = AF_INET;
     peer_addr.sin_port = htons(stoi(port));
-    inet_pton(AF_INET, ip_addr.c_str(), &peer_addr.sin_addr);
+    inet_pton(AF_INET, "0.0.0.0", &peer_addr.sin_addr); // ip_addr.c_str()
     int connect_result = connect(peer_sock, (struct sockaddr *)&peer_addr, sizeof(peer_addr));
+    if( connect_result < 0)
+    {
+        cout<<"\n Peer connection error \n";
+        return ;
+    }
 
     // send message to peer
     send(peer_sock, msg.c_str(), msg.size()+1, 0);
