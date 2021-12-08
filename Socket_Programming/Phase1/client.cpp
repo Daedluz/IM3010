@@ -50,7 +50,8 @@ void * listen_peer_message (void * arg)
         cout<<"\nYou have a transaction request : ";
         recv_len = read(new_sock, buffer, BUFFERLEN);
         cout<<buffer<<"\n> ";
-        send(*params->serv_sock, buffer, recv_len, 0);
+        send(*params->serv_sock, buffer, recv_len+1, 0);
+        close(new_sock);
     }
 
     return NULL;
@@ -77,7 +78,7 @@ void user_transaction(int &sock, char buffer[BUFFERLEN], string userName, vector
     }
     if (!found)
     {
-        cout<<"\nPeer not found, try \"list\" command and try again.\n> ";
+        cout<<"\nPeer not found, try \"list\" command and try again.\n";
         return;
     }
     msg = userName + "#" + value + "#" + target;
@@ -103,6 +104,7 @@ void user_transaction(int &sock, char buffer[BUFFERLEN], string userName, vector
 
     // send message to peer
     send(peer_sock, msg.c_str(), msg.size()+1, 0);
+    close(peer_sock);
     // receive confirm message from server
     int bytes_recv = recv(sock, buffer, BUFFERLEN, 0);
     cout<<buffer<<endl;
@@ -284,7 +286,12 @@ int main(int argc, char *argv[])
 
         else if (userInput == "list")
         {
-            send(sock, "List", 4, 0);
+            if (login == false)
+            {
+                cout<<"\nPlease login first !\n";
+                continue;
+            }
+            send(sock, "List", 5, 0);
             int res_len = recv(sock, buffer, BUFFERLEN, 0);
             // TODO Make a function to read user_list
             user_list.clear();
@@ -319,8 +326,9 @@ int main(int argc, char *argv[])
         
         else if (userInput == "exit")
         {
-            send(sock, "Exit", 4, 0);
+            send(sock, "Exit", 5, 0);
             recv(sock, buffer, BUFFERLEN, 0);
+            cout<<"\n"<<buffer;
             cout<<"\nClosing connection\n";
             close(sock);
             memset(buffer, 0, BUFFERLEN); // clear buffer
@@ -331,7 +339,6 @@ int main(int argc, char *argv[])
             cout<<"Couldn't recognize command :(\n";
         }
     }
-
 
     return 0;
 }
