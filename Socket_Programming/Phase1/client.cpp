@@ -64,15 +64,20 @@ void user_transaction(int &sock, char buffer[BUFFERLEN], string userName, vector
     getline(cin, target);
     cout<<"\nHow much money do you want to transfer ?\n> ";
     getline(cin, value);
-
+    bool found = false;
     for (int i=0; i<user_list.size(); i++)
     {
         if (target == user_list[i][0])
         {
             ip_addr = user_list[i][1];
             port = user_list[i][2];
+            found = true;
             break;
         }
+    }
+    if (!found)
+    {
+        cout<<"\nPeer not found, try \"list\" command and try again.\n> ";
     }
     msg = userName + "#" + value + "#" + target;
     // cout<<msg<<endl;
