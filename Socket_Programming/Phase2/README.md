@@ -4,5 +4,15 @@
 ## Environment
 Ubuntu 20.04 LTS
 
-## Server Functions 
+## ToDo
 
+- [x] Listen to assigned port
+- [x] Create a thread pool
+- [x] Assign each user to a thread  
+    Inside the thread :
+    - [x] Register
+    - [x] Login
+    - [x] Transaction
+    - [x] List
+    - [x] Exit
+- [ ] Set max connection to 3 and test it
