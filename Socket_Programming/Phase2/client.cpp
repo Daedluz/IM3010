@@ -65,6 +65,11 @@ void user_transaction(int &sock, char buffer[BUFFERLEN], string userName, vector
     getline(cin, target);
     cout<<"\nHow much money do you want to transfer ?\n> ";
     getline(cin, value);
+    if (target == "" || value == "")
+    {
+        cout<<"Empty input !\n";
+        return;
+    }
     bool found = false;
     for (int i=0; i<user_list.size(); i++)
     {
@@ -118,6 +123,11 @@ int user_register(int &sock, char buffer[BUFFERLEN])
     char status[3];
     cout << "What username do you want ? \n> ";
     getline(cin, userName);
+    if (userName == "")
+    {
+        cout<<"Empty input !\n";
+        return 210;
+    }
     userName = "REGISTER#" + userName;
 
     send(sock, userName.c_str(), userName.size()+1, 0);
@@ -236,6 +246,7 @@ int main(int argc, char *argv[])
             if (userName == "" || port_num == "")
             {
                 cout<<"Empty input !\n";
+                continue;
             }
             int res_len = userLogin(sock, buffer, userName, stoi(port_num));
             if (res_len > 0) // if login successful
