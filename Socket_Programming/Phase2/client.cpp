@@ -233,6 +233,10 @@ int main(int argc, char *argv[])
             getline(cin, userName);
             cout<<"Port number : \n> ";
             getline(cin, port_num);
+            if (userName == "" || port_num == "")
+            {
+                cout<<"Empty input !\n";
+            }
             int res_len = userLogin(sock, buffer, userName, stoi(port_num));
             if (res_len > 0) // if login successful
             {
