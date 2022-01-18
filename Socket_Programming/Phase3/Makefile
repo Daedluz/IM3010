@@ -1,7 +1,7 @@
-all: server.out client.out
+all: server client
 
-server.out: server.cpp
-	g++ -pthread -o server.out server.cpp
+server: server.cpp
+	g++ -o server server.cpp -lssl -lcrypto -pthread
 
-client.out: client.cpp
-	g++ -pthread -o client.out client.cpp
+client: client.cpp
+	g++ -o client client.cpp -lssl -lcrypto -pthread

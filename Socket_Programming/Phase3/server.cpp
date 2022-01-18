@@ -9,10 +9,15 @@
 # include <string>
 # include <vector>
 # include "ctpl_stl.h"
+# include <sys/types.h>
+# include <stdlib.h>
+# include <openssl/ssl.h>
+# include <openssl/err.h>
 
 # define BUFFERLEN 4096
 
 const int max_connection = 3;
+// TODO Get public key with OpenSSL
 const std::string serv_pk = "public_key";
 // All registered usernames and their account balance
 std::vector<std::vector<std::string>> register_list;
@@ -21,9 +26,41 @@ std::vector<int> online_sock;
 
 int connection_cnt = 0;
 
-struct Socket_connection
+std::string configure_ctx (SSL_CTX* ctx)
 {
-    int socket;
+    std::string pid = std::to_string(getpid());
+    std::cout<< pid;
+    char* cmd = new char[1024];
+    sprintf(cmd, "openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -keyout ./cert/%s.key -out ./cert/%s.crt -subj \"/C=TW/ST=Taiwan/L=TPE/O=NTU/OU=IM/CN=Michael/emailAddress=\"", pid.c_str(), pid.c_str());
+    system(cmd);
+    std::cout<<"Certificate generated.";
+
+    char* key_path = new char[1024];
+    char* cert_path = new char[1024];
+    sprintf(key_path, "./cert/%s.key", pid.c_str());
+    sprintf(cert_path, "./cert/%s.crt", pid.c_str());
+
+    if (SSL_CTX_use_certificate_file(ctx, cert_path, SSL_FILETYPE_PEM) <= 0)
+    {
+        ERR_print_errors_fp(stderr);
+        abort();
+    }
+    if ( SSL_CTX_use_PrivateKey_file(ctx, key_path, SSL_FILETYPE_PEM) <= 0 )
+    {
+        ERR_print_errors_fp(stderr);
+        abort();
+    }
+    if ( !SSL_CTX_check_private_key(ctx) )
+    {
+        fprintf(stderr, "Private key does not match the public certificate\n");
+        abort();
+    }
+    return pid;
+}
+
+struct SSL_connection
+{
+    SSL* ssl;
     std::string client_ip;
 };
 
@@ -43,7 +80,7 @@ std::vector<std::string> split (std::string s, std::string delimiter)
     return res;
 }
 
-void handle_register (int socket, std::string username)
+void handle_register (SSL *socket, std::string username)
 {
     std::string msg;
     for (int i=0; i<register_list.size(); i++)
@@ -52,7 +89,7 @@ void handle_register (int socket, std::string username)
         {
             std::cout<<"\nUsername already registered\n";
             msg = "210 FAIL\n";
-            send(socket, msg.c_str(), msg.size()+1, 0);
+            SSL_write(socket, msg.c_str(), msg.size()+1);
             return;
         }
     }
@@ -61,11 +98,11 @@ void handle_register (int socket, std::string username)
     user.push_back("10000");
     register_list.push_back(user);
     msg = "100 OK\n";
-    send(socket, msg.c_str(), msg.size()+1, 0);
+    SSL_write(socket, msg.c_str(), msg.size()+1);
     return;
 }
 
-void handle_list (int socket, std::string username)
+void handle_list (SSL *socket, std::string username)
 {
     int acc_bal;
     for (int i=0; i<register_list.size(); i++)
@@ -91,12 +128,12 @@ void handle_list (int socket, std::string username)
         }
         msg = msg + "\n";
     }
-    send(socket, msg.c_str(), msg.size() + 1, 0);
+    SSL_write(socket, msg.c_str(), msg.size() + 1);
 
     return;
 }
 
-std::string handle_login (int socket, std::string username, std::string ip_addr, int port_num)
+std::string handle_login (SSL *socket, std::string username, std::string ip_addr, int port_num)
 // Return the account balance of user
 {
     std::string msg = "";
@@ -106,7 +143,7 @@ std::string handle_login (int socket, std::string username, std::string ip_addr,
         if (username == online_list[i][0])
         {
             msg = "200 AUTH_FAIL\n";
-            send(socket, msg.c_str(), msg.size()+1, 0);
+            SSL_write(socket, msg.c_str(), msg.size()+1);
             
             return "";
         }
@@ -139,19 +176,19 @@ std::string handle_login (int socket, std::string username, std::string ip_addr,
                 }
                 msg = msg + "\n";
             }
-            send(socket, msg.c_str(), msg.size() + 1, 0);
+            SSL_write(socket, msg.c_str(), msg.size() + 1);
             
             return register_list[i][0];
         }
     }
 
     msg = "200 AUTH_FAIL\n";
-    send(socket, msg.c_str(), msg.size()+1, 0);
+    SSL_write(socket, msg.c_str(), msg.size()+1);
     
     return "";
 }
 
-void handle_transaction (int socket, std::string peer, int value, std::string username)
+void handle_transaction (SSL *socket, std::string peer, int value, std::string username)
 {
     // Calculate account balance
     for (int i=0; i<register_list.size(); i++)
@@ -180,10 +217,10 @@ void handle_transaction (int socket, std::string peer, int value, std::string us
     return;
 }
 
-void process_user (int id, Socket_connection connection)
+void process_user (int id, SSL_connection connection)
 // args stored the socket to client and the client's IP address
 {
-    int socket = connection.socket;
+    SSL *socket = connection.ssl;
     std::string client_ip = connection.client_ip; 
     char buffer[BUFFERLEN] = {0};
     bool logged_in = false;
@@ -191,7 +228,7 @@ void process_user (int id, Socket_connection connection)
     while (true)
     {
         // recv and process request from user
-        int recv_len = read(socket, buffer, BUFFERLEN);
+        int recv_len = SSL_read(socket, buffer, BUFFERLEN);
         std::cout<<buffer<<std::endl;
         std::vector<std::string> request = split(buffer, "#");
         if (request.size() == 3)
@@ -235,7 +272,7 @@ void process_user (int id, Socket_connection connection)
 
             connection_cnt = connection_cnt - 1;
 
-            send(socket, "Bye\n", 4, 0);
+            SSL_write(socket, "Bye\n", 4);
             break;
         }
         else 
@@ -244,10 +281,9 @@ void process_user (int id, Socket_connection connection)
         }
 
     }
-    close(socket);
+    SSL_shutdown(socket);
+    SSL_free(socket);
 }
-
-
 
 int main(int argc, char *argv[])
 // Argument is port number
@@ -278,6 +314,17 @@ int main(int argc, char *argv[])
 
     std::cout<<"Server listening on port "<<argv[1]<<std::endl;
 
+    SSL_library_init();
+    OpenSSL_add_all_algorithms();
+    SSL_load_error_strings();
+
+    // Create context
+    const SSL_METHOD *meth = SSLv23_server_method();
+    SSL_CTX *ctx = SSL_CTX_new (meth);
+
+    // DONE TODO Configure context with key and certificate
+    configure_ctx(ctx);
+
     // create thread pool
     ctpl::thread_pool pool(max_connection);
 
@@ -285,6 +332,7 @@ int main(int argc, char *argv[])
     {
         if (connection_cnt >= max_connection)
         {
+            // TODO notify client that the max connection limit
             // std::cout<<"Exceed max connection.\n";
             continue;
         }
@@ -298,9 +346,21 @@ int main(int argc, char *argv[])
                 continue;
             }
             online_sock.push_back(connection);
+
+            // DONE TODO Create SSL 
+            SSL *client_ssl;
+            client_ssl = SSL_new(ctx);
+            SSL_set_fd(client_ssl, connection);
+             if (SSL_accept(client_ssl) == -1)
+            {
+                ERR_print_errors_fp(stderr);
+                close(connection);
+                continue;
+            }
+
             char ip_address[INET_ADDRSTRLEN]; 
-            Socket_connection conn;
-            conn.socket = connection;
+            SSL_connection conn;
+            conn.ssl = client_ssl;
             conn.client_ip = std::string(inet_ntop(AF_INET, &(client_addr.sin_addr), ip_address, INET_ADDRSTRLEN));
             pool.push(process_user, conn);
             
@@ -311,6 +371,8 @@ int main(int argc, char *argv[])
     }
 
     close(listen_sock);
+    // SSL_shutdown(ssl);
+    // SSL_free(ssl);
 
     return 0;
 }
